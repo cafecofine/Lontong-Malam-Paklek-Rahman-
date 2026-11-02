@@ -1,0 +1,571 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lontong Malam Paklek Rahman</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#faf8f1;color:#20251f;font-family:Arial}
+header{background:#183b2b;color:white;padding:18px 5%;display:flex;justify-content:space-between;align-items:center}
+header button{background:#ffffff22;color:white;border:1px solid white}
+button{cursor:pointer;border:0;border-radius:9px;padding:11px 15px;font-weight:bold}
+.wrap{max-width:1100px;margin:auto;padding:25px 16px}
+.hero{background:#28563e;color:white;padding:30px;border-radius:18px;margin-bottom:25px}
+.hero h1{margin-top:0}
+.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:15px}
+.menu-card,.cart-box,.panel{background:white;border:1px solid #e8e6dd;border-radius:14px;padding:15px}
+.menu-card img{width:100%;height:140px;object-fit:cover;border-radius:10px}
+.menu-card h3{margin-bottom:5px}
+.price{color:#28563e;font-weight:bold;font-size:18px}
+.primary{background:#183b2b;color:white}
+.secondary{background:#edf1eb;color:#183b2b}
+.danger{background:#fae9e7;color:#b63e32}
+.wide{width:100%}
+.cart-box{margin-top:25px}
+.cart-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eee}
+.qty{display:flex;align-items:center;gap:8px}
+.qty button{padding:5px 10px;background:#edf1eb}
+.total{display:flex;justify-content:space-between;font-size:19px;font-weight:bold;margin:18px 0}
+.modal-bg{display:none;position:fixed;inset:0;background:#0009;align-items:center;justify-content:center;padding:15px;z-index:10}
+.modal-bg.show{display:flex}
+.modal{background:white;border-radius:16px;padding:22px;width:100%;max-width:450px;max-height:90vh;overflow:auto}
+.field{margin:12px 0}
+.field label{display:block;margin-bottom:6px;font-weight:bold;font-size:13px}
+.field input,.field textarea{width:100%;padding:11px;border:1px solid #ccc;border-radius:8px}
+.pay-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:15px 0}
+.pay-choice button{background:white;border:1px solid #ddd}
+.pay-choice button.selected{border:2px solid #183b2b;background:#edf5ed}
+.qr-box{text-align:center;background:#f5f5f0;padding:15px;border-radius:10px}
+.qr-box img{max-width:230px;width:100%}
+.status{display:inline-block;background:#fff0d9;color:#8b5a12;padding:6px 10px;border-radius:20px;font-size:12px}
+.ready{background:#e2f2e5;color:#24643a}
+.admin{display:none}
+.order-card{border:1px solid #ddd;border-radius:10px;padding:13px;margin:12px 0}
+.hidden{display:none!important}
+.muted{font-size:13px;color:#777;line-height:1.5}
+@media(max-width:550px){header{padding:14px}.wrap{padding:18px 12px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <b id="brandName">Lontong Malam Paklek Rahman</b>
+    <div style="font-size:12px">Pantang pulang sebelum kenyang!!</div>
+  </div>
+  <button onclick="openLogin()">Login Pemilik</button>
+</header>
+
+<main class="wrap" id="customer">
+  <section class="hero">
+    <h1>Mau makan apa hari ini?</h1>
+    <p>Pilih menu favoritmu dan pesan sekarang!</p>
+  </section>
+
+  <h2>Daftar Menu</h2>
+  <input id="search" placeholder="Cari menu..." oninput="renderMenu()" style="padding:11px;width:100%;margin-bottom:15px;border:1px solid #ddd;border-radius:8px">
+
+  <div class="menu-grid" id="menuGrid"></div>
+
+  <section class="cart-box">
+    <h2>Keranjang Pesanan</h2>
+    <div id="cartItems">Belum ada pesanan.</div>
+    <div class="total">
+      <span>Total</span>
+      <span id="total">Rp0</span>
+    </div>
+    <button class="primary wide" onclick="checkout()">Lanjutkan Pesan</button>
+  </section>
+</main>
+
+<!-- PANEL PEMILIK -->
+<main class="wrap admin" id="admin">
+  <h2>Panel Pemilik</h2>
+  <button class="secondary" onclick="logout()">Keluar</button>
+
+  <section class="panel" style="margin-top:15px">
+    <h3>Pengaturan Warung</h3>
+    <div class="field">
+      <label>Nama Warung</label>
+      <input id="shopName">
+    </div>
+    <div class="field">
+      <label>Nomor WhatsApp (628xxxx)</label>
+      <input id="shopWa">
+    </div>
+    <div class="field">
+      <label>Upload QRIS</label>
+      <input type="file" id="qrFile" accept="image/*" onchange="uploadQR(event)">
+    </div>
+    <button class="primary" onclick="saveSettings()">Simpan Pengaturan</button>
+  </section>
+
+  <section class="panel" style="margin-top:15px">
+    <h3 id="formTitle">Tambah Menu</h3>
+    <input type="hidden" id="editId">
+
+    <div class="field">
+      <label>Nama Menu</label>
+      <input id="menuName" placeholder="Nama menu">
+    </div>
+
+    <div class="field">
+      <label>Harga</label>
+      <input type="number" id="menuPrice" placeholder="15000">
+    </div>
+
+    <div class="field">
+      <label>Kategori</label>
+      <input id="menuCategory" placeholder="Makanan / Minuman">
+    </div>
+
+    <div class="field">
+      <label>Deskripsi</label>
+      <textarea id="menuDesc"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Foto Menu</label>
+      <input type="file" id="menuPhoto" accept="image/*">
+    </div>
+
+    <button class="primary" onclick="saveMenu()">Simpan Menu</button>
+    <button class="secondary" onclick="resetForm()">Batal</button>
+
+    <h3>Daftar Menu</h3>
+    <div id="adminMenus"></div>
+  </section>
+
+  <section class="panel" style="margin-top:15px">
+    <h3>Pesanan Masuk</h3>
+    <div id="ordersList"></div>
+  </section>
+</main>
+
+<!-- MODAL LOGIN -->
+<div class="modal-bg" id="loginModal">
+  <div class="modal">
+    <h2>Login Pemilik</h2>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password">
+    </div>
+    <p class="muted">Password awal: admin123. Ganti di bagian ADMIN_PASSWORD dalam kode.</p>
+    <button class="primary" onclick="login()">Masuk</button>
+    <button class="secondary" onclick="closeModal('loginModal')">Batal</button>
+    <p id="loginError" style="color:red"></p>
+  </div>
+</div>
+
+<!-- MODAL PEMBAYARAN -->
+<div class="modal-bg" id="payModal">
+  <div class="modal">
+    <h2>Pilih Pembayaran</h2>
+
+    <div class="pay-choice">
+      <button id="qrisBtn" onclick="choosePay('QRIS')">
+        ▦<br>QRIS
+      </button>
+      <button id="cashBtn" onclick="choosePay('Cash')">
+        💵<br>Cash
+      </button>
+    </div>
+
+    <div id="qrisArea" class="hidden">
+      <div class="qr-box" id="qrContent"></div>
+      <p class="muted">Silakan scan QRIS dan lakukan pembayaran. Pemilik akan mengonfirmasi pembayaran.</p>
+    </div>
+
+    <div class="field">
+      <label>Nama Pemesan</label>
+      <input id="customerName" placeholder="Nama kamu">
+    </div>
+
+    <div class="field">
+      <label>Catatan dan No.meja</label>
+      <textarea id="customerNote" placeholder="Contoh: Meja 5, Tambahkan sambal"></textarea>
+    </div>
+
+    <p id="checkoutTotal"></p>
+
+    <button class="primary wide" onclick="submitOrder()">Kirim Pesanan</button>
+    <button class="secondary wide" style="margin-top:8px" onclick="closeModal('payModal')">Kembali</button>
+  </div>
+</div>
+
+<!-- MODAL STATUS -->
+<div class="modal-bg" id="successModal">
+  <div class="modal">
+    <h2>Pesanan Berhasil!</h2>
+    <p id="successText"></p>
+    <span class="status" id="successStatus"></span>
+    <br><br>
+    <button class="primary wide" onclick="closeModal('successModal')">Selesai</button>
+  </div>
+</div>
+
+<script>
+// GANTI PASSWORD PEMILIK DI SINI
+const ADMIN_PASSWORD = "admin123";
+
+const DEFAULT_MENU = [
+ {id:1,name:"Nasi Goreng",price:15000,category:"Makanan",desc:"Nasi goreng spesial",photo:""},
+ {id:2,name:"Mie Goreng",price:13000,category:"Makanan",desc:"Mie goreng lezat",photo:""},
+ {id:3,name:"Es Teh",price:5000,category:"Minuman",desc:"Es teh segar",photo:""}
+];
+
+const getData=(key,def)=>{
+ try{return JSON.parse(localStorage.getItem(key))??def}
+ catch{return def}
+};
+
+let menus=getData("menus",DEFAULT_MENU);
+let orders=getData("orders",[]);
+let settings=getData("settings",{name:"Lontong Malam Paklek Rahman",wa:"",qr:""});
+let cart={};
+let payment="";
+
+const money=n=>"Rp"+Number(n).toLocaleString("id-ID");
+
+function saveData(){
+ localStorage.setItem("menus",JSON.stringify(menus));
+ localStorage.setItem("orders",JSON.stringify(orders));
+ localStorage.setItem("settings",JSON.stringify(settings));
+}
+
+function esc(s){
+ return String(s??"").replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
+function init(){
+ document.getElementById("brandName").textContent=settings.name;
+ renderMenu();
+ renderCart();
+}
+
+function renderMenu(){
+ let q=document.getElementById("search").value.toLowerCase();
+ let list=menus.filter(m=>(m.name+" "+m.category).toLowerCase().includes(q));
+
+ document.getElementById("menuGrid").innerHTML=list.map(m=>`
+ <div class="menu-card">
+ ${m.photo?`<img src="${m.photo}">`:"<div style='font-size:45px;text-align:center;padding:25px'>🍽️</div>"}
+ <h3>${esc(m.name)}</h3>
+ <p class="muted">${esc(m.desc)}</p>
+ <div class="price">${money(m.price)}</div>
+ <br>
+ <button class="primary wide" onclick="addCart(${m.id})">Tambah</button>
+ </div>
+ `).join("")||"Menu tidak ditemukan.";
+}
+
+function addCart(id){
+ cart[id]=(cart[id]||0)+1;
+ renderCart();
+}
+
+function changeQty(id,n){
+ cart[id]=(cart[id]||0)+n;
+ if(cart[id]<=0)delete cart[id];
+ renderCart();
+}
+
+function cartData(){
+ return Object.entries(cart).map(([id,qty])=>{
+ let m=menus.find(x=>x.id===Number(id));
+ return m?{...m,qty}:null;
+ }).filter(Boolean);
+}
+
+function total(){
+ return cartData().reduce((s,m)=>s+m.price*m.qty,0);
+}
+
+function renderCart(){
+ let data=cartData();
+
+ document.getElementById("cartItems").innerHTML=data.length?
+ data.map(m=>`
+ <div class="cart-row">
+ <div><b>${esc(m.name)}</b><br>${money(m.price)}</div>
+ <div class="qty">
+ <button onclick="changeQty(${m.id},-1)">−</button>
+ ${m.qty}
+ <button onclick="changeQty(${m.id},1)">+</button>
+ </div>
+ </div>`).join(""):"Belum ada pesanan.";
+
+ document.getElementById("total").textContent=money(total());
+}
+
+function checkout(){
+ if(!cartData().length)return alert("Pilih menu terlebih dahulu.");
+
+ payment="";
+ document.getElementById("qrisArea").classList.add("hidden");
+ document.getElementById("qrisBtn").classList.remove("selected");
+ document.getElementById("cashBtn").classList.remove("selected");
+ document.getElementById("checkoutTotal").textContent="Total: "+money(total());
+ openModal("payModal");
+}
+
+function choosePay(p){
+ payment=p;
+
+ document.getElementById("qrisBtn").classList.toggle("selected",p==="QRIS");
+ document.getElementById("cashBtn").classList.toggle("selected",p==="Cash");
+
+ document.getElementById("qrisArea").classList.toggle("hidden",p!=="QRIS");
+
+ if(p==="QRIS"){
+ document.getElementById("qrContent").innerHTML=
+ settings.qr?
+ `<img src="${settings.qr}" alt="QRIS Warung">`:
+ "QRIS belum diunggah pemilik.";
+ }
+}
+
+function submitOrder(){
+ if(!payment)return alert("Pilih pembayaran.");
+ let name=document.getElementById("customerName").value.trim();
+ if(!name)return alert("Isi nama pemesan.");
+
+ if(payment==="QRIS"&&!settings.qr)
+ return alert("QRIS belum tersedia.");
+
+ let id="WK"+Date.now().toString().slice(-8);
+ let items=cartData();
+ let sum=total();
+ let note=document.getElementById("customerNote").value;
+
+ let status=payment==="Cash"?
+ "Pesanan sedang disiapkan":
+ "Menunggu konfirmasi pembayaran";
+
+ let order={
+ id,name,
+ items:items.map(m=>({
+ name:m.name,qty:m.qty,price:m.price
+ })),
+ total:sum,payment,note,status,
+ time:new Date().toLocaleString("id-ID")
+ };
+
+ orders.unshift(order);
+ saveData();
+
+ let message=`Halo ${settings.name}, saya ingin memesan:
+${items.map(m=>"- "+m.name+" x"+m.qty+" = "+money(m.price*m.qty)).join("\n")}
+
+Total: ${money(sum)}
+Pembayaran: ${payment}
+Nama: ${name}
+Catatan: ${note||"-"}
+Nomor pesanan: ${id}`;
+
+ let wa=settings.wa.replace(/\D/g,"");
+
+ closeModal("payModal");
+ cart={};
+ renderCart();
+
+ document.getElementById("successText").textContent=
+ payment==="Cash"?
+ "Pesanan cash langsung masuk ke daftar pesanan pemilik.":
+ "Silakan lakukan pembayaran QRIS dan tunggu konfirmasi pemilik.";
+
+ document.getElementById("successStatus").textContent=status;
+ document.getElementById("successStatus").className=
+ "status"+(payment==="Cash"?" ready":"");
+
+ openModal("successModal");
+
+ if(wa){
+ window.open("https://wa.me/"+wa+"?text="+encodeURIComponent(message),"_blank");
+ }else{
+ alert("Nomor WhatsApp pemilik belum diatur.");
+ }
+}
+
+function openLogin(){
+ openModal("loginModal");
+}
+
+function login(){
+ if(document.getElementById("password").value!==ADMIN_PASSWORD){
+ document.getElementById("loginError").textContent="Password salah.";
+ return;
+ }
+
+ closeModal("loginModal");
+ document.getElementById("customer").classList.add("hidden");
+ document.getElementById("admin").style.display="block";
+
+ document.getElementById("shopName").value=settings.name;
+ document.getElementById("shopWa").value=settings.wa;
+
+ renderAdminMenus();
+ renderOrders();
+}
+
+function logout(){
+ document.getElementById("admin").style.display="none";
+ document.getElementById("customer").classList.remove("hidden");
+}
+
+function saveSettings(){
+ settings.name=document.getElementById("shopName").value.trim()||"WARUNG KITA";
+ settings.wa=document.getElementById("shopWa").value.trim();
+ saveData();
+ init();
+ alert("Pengaturan berhasil disimpan.");
+}
+
+function uploadQR(e){
+ let file=e.target.files[0];
+ if(!file)return;
+
+ if(file.size>1500000)return alert("Ukuran QRIS maksimal 1,5 MB.");
+
+ let reader=new FileReader();
+ reader.onload=()=>{
+ settings.qr=reader.result;
+ saveData();
+ alert("QRIS berhasil disimpan.");
+ };
+ reader.readAsDataURL(file);
+}
+
+function saveMenu(){
+ let name=document.getElementById("menuName").value.trim();
+ let price=Number(document.getElementById("menuPrice").value);
+
+ if(!name||price<=0)return alert("Isi nama dan harga menu.");
+
+ let id=document.getElementById("editId").value;
+ let old=menus.find(m=>m.id===Number(id));
+ let photo=old?.photo||"";
+
+ let finish=(img)=>{
+ let obj={
+ id:id?Number(id):Date.now(),
+ name,price,
+ category:document.getElementById("menuCategory").value,
+ desc:document.getElementById("menuDesc").value,
+ photo:img
+ };
+
+ if(id)menus=menus.map(m=>m.id===Number(id)?obj:m);
+ else menus.push(obj);
+
+ saveData();
+ resetForm();
+ renderAdminMenus();
+ renderMenu();
+ alert("Menu berhasil disimpan.");
+ };
+
+ let file=document.getElementById("menuPhoto").files[0];
+
+ if(file){
+ if(file.size>1200000)return alert("Foto maksimal 1,2 MB.");
+ let reader=new FileReader();
+ reader.onload=()=>finish(reader.result);
+ reader.readAsDataURL(file);
+ }else finish(photo);
+}
+
+function editMenu(id){
+ let m=menus.find(x=>x.id===id);
+
+ document.getElementById("editId").value=m.id;
+ document.getElementById("menuName").value=m.name;
+ document.getElementById("menuPrice").value=m.price;
+ document.getElementById("menuCategory").value=m.category;
+ document.getElementById("menuDesc").value=m.desc;
+ document.getElementById("formTitle").textContent="Edit Menu";
+}
+
+function deleteMenu(id){
+ if(!confirm("Hapus menu ini?"))return;
+
+ menus=menus.filter(m=>m.id!==id);
+ delete cart[id];
+
+ saveData();
+ renderAdminMenus();
+ renderMenu();
+ renderCart();
+}
+
+function resetForm(){
+ ["editId","menuName","menuPrice","menuCategory","menuDesc","menuPhoto"]
+ .forEach(id=>document.getElementById(id).value="");
+
+ document.getElementById("formTitle").textContent="Tambah Menu";
+}
+
+function renderAdminMenus(){
+ document.getElementById("adminMenus").innerHTML=menus.map(m=>`
+ <div class="cart-row">
+ <b>${esc(m.name)} - ${money(m.price)}</b>
+ <div>
+ <button class="secondary" onclick="editMenu(${m.id})">Edit</button>
+ <button class="danger" onclick="deleteMenu(${m.id})">Hapus</button>
+ </div>
+ </div>
+ `).join("");
+}
+
+function renderOrders(){
+ let el=document.getElementById("ordersList");
+
+ if(!orders.length){
+ el.textContent="Belum ada pesanan.";
+ return;
+ }
+
+ el.innerHTML=orders.map(o=>`
+ <div class="order-card">
+ <b>${esc(o.id)} - ${esc(o.name)}</b>
+ <p>${o.items.map(i=>esc(i.name)+" x"+i.qty).join("<br>")}</p>
+ <b>${money(o.total)}</b>
+ <p>Pembayaran: ${esc(o.payment)}</p>
+ <p>${esc(o.time)}</p>
+ <span class="status ${o.status==="Pesanan sedang disiapkan"?"ready":""}">
+ ${esc(o.status)}
+ </span>
+ <br><br>
+ ${o.payment==="QRIS"&&o.status!=="Pesanan sedang disiapkan"?
+ `<button class="primary" onclick="markPaid('${o.id}')">Konfirmasi Sudah Dibayar</button>`:""}
+ </div>
+ `).join("");
+}
+
+function markPaid(id){
+ let o=orders.find(x=>x.id===id);
+ if(!o)return;
+
+ if(!confirm("Pastikan uang sudah masuk. Konfirmasi pembayaran?"))return;
+
+ o.status="Pesanan sedang disiapkan";
+ saveData();
+ renderOrders();
+}
+
+function openModal(id){
+ document.getElementById(id).classList.add("show");
+}
+
+function closeModal(id){
+ document.getElementById(id).classList.remove("show");
+}
+
+init();
+</script>
+</body>
+</html>
